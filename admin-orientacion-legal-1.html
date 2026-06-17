@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Orientación Legal Argentina</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f0ece6; min-height: 100vh; }
+
+    /* LOGIN */
+    #login-screen {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+    }
+    .login-box {
+      background: white; border-radius: 16px; padding: 36px 28px;
+      width: 100%; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      text-align: center;
+    }
+    .login-box h1 { font-size: 1.3rem; color: #2c1a0e; margin-bottom: 6px; }
+    .login-box p { font-size: 0.85rem; color: #888; margin-bottom: 24px; }
+    .login-box input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid #ddd;
+      border-radius: 10px; font-size: 1rem; margin-bottom: 12px; outline: none;
+    }
+    .login-box input:focus { border-color: #B5895A; }
+    .btn-login {
+      width: 100%; padding: 13px; background: #B5895A; color: white;
+      border: none; border-radius: 10px; font-size: 1rem; font-weight: 600;
+      cursor: pointer;
+    }
+    .login-error { color: #9B3A4F; font-size: 0.85rem; margin-top: 10px; display: none; }
+
+    /* PANEL */
+    #admin-panel { display: none; }
+
+    .admin-header {
+      background: #2c1a0e; color: white; padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .admin-header h1 { font-size: 1rem; }
+    .btn-logout {
+      background: rgba(255,255,255,0.15); color: white; border: none;
+      padding: 7px 14px; border-radius: 8px; font-size: 0.82rem; cursor: pointer;
+    }
+
+    .stats-bar {
+      display: flex; gap: 12px; padding: 16px; overflow-x: auto;
+    }
+    .stat-card {
+      background: white; border-radius: 12px; padding: 14px 18px;
+      min-width: 120px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      flex-shrink: 0;
+    }
+    .stat-num { font-size: 1.8rem; font-weight: 700; color: #2c1a0e; }
+    .stat-label { font-size: 0.75rem; color: #888; margin-top: 2px; }
+
+    .filtros {
+      display: flex; gap: 8px; padding: 0 16px 12px; flex-wrap: wrap;
+    }
+    .filtro-btn {
+      padding: 7px 14px; border-radius: 20px; border: 1.5px solid #ddd;
+      background: white; font-size: 0.82rem; cursor: pointer; color: #555;
+    }
+    .filtro-btn.active { background: #B5895A; color: white; border-color: #B5895A; }
+
+    .lista { padding: 0 16px 100px; }
+
+    .prof-card {
+      background: white; border-radius: 14px; padding: 16px;
+      margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .prof-card.moroso { border-left: 4px solid #E8A838; }
+    .prof-card.suspendido { border-left: 4px solid #9B3A4F; opacity: 0.7; }
+
+    .prof-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+    .prof-nombre { font-weight: 700; color: #2c1a0e; font-size: 0.98rem; }
+    .prof-tipo {
+      font-size: 0.72rem; padding: 3px 8px; border-radius: 10px;
+      font-weight: 600; margin-top: 2px; display: inline-block;
+    }
+    .tipo-abogado { background: #EAF0FB; color: #2c5aa0; }
+    .tipo-mediador { background: #FBF3EA; color: #B5895A; }
+
+    .badge-estado {
+      font-size: 0.72rem; padding: 4px 10px; border-radius: 10px;
+      font-weight: 600; flex-shrink: 0;
+    }
+    .badge-activo { background: #E6F4EA; color: #2d7a3a; }
+    .badge-moroso { background: #FEF3CD; color: #856404; }
+    .badge-suspendido { background: #F8D7DA; color: #721c24; }
+
+    .prof-info { font-size: 0.82rem; color: #666; line-height: 1.7; margin-bottom: 10px; }
+    .prof-info span { display: block; }
+
+    .prof-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-accion {
+      padding: 7px 12px; border-radius: 8px; border: none;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-pago-ok { background: #E6F4EA; color: #2d7a3a; }
+    .btn-pago-no { background: #FEF3CD; color: #856404; }
+    .btn-suspender { background: #F8D7DA; color: #721c24; }
+    .btn-reactivar { background: #E6F4EA; color: #2d7a3a; }
+    .btn-eliminar { background: #F8D7DA; color: #721c24; }
+
+    .fecha-venc {
+      font-size: 0.75rem; color: #888; margin-top: 6px;
+    }
+    .fecha-venc.vencido { color: #9B3A4F; font-weight: 600; }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    .loading { text-align: center; padding: 40px; color: #aaa; }
+
+    .confirm-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; display: none;
+    }
+    .confirm-box {
+      background: white; border-radius: 16px; padding: 28px 24px;
+      max-width: 320px; width: 90%; text-align: center;
+    }
+    .confirm-box h3 { margin-bottom: 10px; color: #2c1a0e; }
+    .confirm-box p { font-size: 0.88rem; color: #666; margin-bottom: 20px; }
+    .confirm-btns { display: flex; gap: 10px; }
+    .confirm-btns button { flex: 1; padding: 11px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
+    .btn-confirmar-si { background: #9B3A4F; color: white; }
+    .btn-confirmar-no { background: #f0ece6; color: #555; }
+
+    /* TABS */
+    .tabs { display:flex; border-bottom:2px solid #e0d8d0; margin:0 16px 16px; }
+    .tab-btn { padding:10px 18px; border:none; background:none; font-size:0.88rem; font-weight:600; color:#aaa; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; }
+    .tab-btn.active { color:#B5895A; border-bottom-color:#B5895A; }
+    /* TRAMITES */
+    .tramites-wrap { padding:0 16px 100px; }
+    .cat-titulo { font-weight:700; color:#2c1a0e; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; padding:10px 0 8px; border-bottom:2px solid #e0d8d0; margin-bottom:10px; }
+    .tram-card { background:white; border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+    .tram-titulo { font-weight:700; color:#2c1a0e; font-size:0.95rem; margin-bottom:6px; }
+    .tram-hint { font-size:0.73rem; color:#aaa; margin-bottom:6px; }
+    .tram-textarea { width:100%; min-height:110px; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:0.85rem; font-family:system-ui,sans-serif; color:#444; resize:vertical; outline:none; line-height:1.6; }
+    .tram-textarea:focus { border-color:#B5895A; }
+    .tram-acciones { display:flex; gap:8px; margin-top:10px; align-items:center; }
+    .btn-guardar { padding:8px 16px; background:#B5895A; color:white; border:none; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; }
+    .btn-guardar:disabled { opacity:0.5; }
+    .tram-ok { font-size:0.78rem; color:#2d7a3a; display:none; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:2.5rem;margin-bottom:12px">⚖️</div>
+    <h1>Panel Administrativo</h1>
+    <p>Orientación Legal Argentina</p>
+    <div style="position:relative;margin-bottom:12px">
+      <input type="password" id="input-clave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')login()" style="width:100%;padding:12px 44px 12px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:1rem;outline:none;box-sizing:border-box">
+      <span onclick="toggleClave()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1.2rem;user-select:none">👁️</span>
+    </div>
+    <button class="btn-login" onclick="login()">Ingresar</button>
+    <div class="login-error" id="login-error">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="admin-panel">
+  <div class="admin-header">
+    <h1>⚖️ Admin — Orientación Legal</h1>
+    <button class="btn-logout" onclick="logout()">Salir</button>
+  </div>
+
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-total">—</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-activos" style="color:#2d7a3a">—</div>
+      <div class="stat-label">Al día</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-morosos" style="color:#856404">—</div>
+      <div class="stat-label">Morosos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-suspendidos" style="color:#9B3A4F">—</div>
+      <div class="stat-label">Suspendidos</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('prof',this)">👨‍⚖️ Profesionales</button>
+    <button class="tab-btn" onclick="switchTab('tram',this)">📋 Documentación Requerida</button>
+  </div>
+  <div id="sec-prof">
+  <div class="filtros">
+    <button class="filtro-btn active" onclick="filtrar('todos', this)">Todos</button>
+    <button class="filtro-btn" onclick="filtrar('abogado', this)">Abogados</button>
+    <button class="filtro-btn" onclick="filtrar('mediador', this)">Mediadores</button>
+    <button class="filtro-btn" onclick="filtrar('moroso', this)">⚠️ Morosos</button>
+    <button class="filtro-btn" onclick="filtrar('suspendido', this)">🔴 Suspendidos</button>
+  </div>
+
+  <div class="lista" id="lista-profesionales">
+    <div class="loading">Cargando...</div>
+  </div>
+  </div>
+  <div id="sec-tram" style="display:none">
+    <div class="tramites-wrap" id="tramites-wrap">
+      <div class="loading">Cargando trámites...</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMAR ELIMINAR -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h3>⚠️ Eliminar perfil</h3>
+    <p>¿Estás segura? Esta acción no se puede deshacer. El profesional desaparecerá del directorio.</p>
+    <div class="confirm-btns">
+      <button class="btn-confirmar-no" onclick="cerrarConfirm()">Cancelar</button>
+      <button class="btn-confirmar-si" id="btn-confirmar-si">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleClave() {
+  var inp = document.getElementById('input-clave');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function login() {
+  var clave = document.getElementById('input-clave').value;
+  if (clave === 'et162163') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    if (window.cargarProfesionalesFunc) window.cargarProfesionalesFunc();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('sec-prof').style.display = tab === 'prof' ? 'block' : 'none';
+  document.getElementById('sec-tram').style.display = tab === 'tram' ? 'block' : 'none';
+  if (tab === 'tram') { renderTramitesVacio(); }
+}
+
+function renderTramitesVacio() {
+  var TRAMITES = [
+    {cat:'Familia y Niñez', items:[
+      {id:'familia_Divorcio',titulo:'Divorcio'},
+      {id:'familia_Nulidad de matrimonio',titulo:'Nulidad de matrimonio'},
+      {id:'familia_Cuidado personal de hijos',titulo:'Cuidado personal de hijos'},
+      {id:'familia_Cuota alimentaria para hijos',titulo:'Cuota alimentaria para hijos'},
+      {id:'familia_Regimen de comunicacion',titulo:'Régimen de comunicación'},
+      {id:'familia_Autorizacion para viajar con menores',titulo:'Autorización para viajar con menores'},
+      {id:'familia_Responsabilidad parental',titulo:'Responsabilidad parental'},
+      {id:'familia_Adopcion',titulo:'Adopción'},
+      {id:'familia_Filiacion',titulo:'Filiación'},
+      {id:'familia_Cambio de nombre y apellido',titulo:'Cambio de nombre y apellido'},
+    ]},
+    {cat:'Uniones Convivenciales', items:[
+      {id:'conv_Inscripcion union convivencial',titulo:'Inscripción de unión convivencial'},
+      {id:'conv_Cese union convivencial',titulo:'Cese de unión convivencial'},
+      {id:'conv_Compensacion economica',titulo:'Compensación económica por ruptura'},
+      {id:'conv_Atribucion vivienda familiar',titulo:'Atribución de vivienda familiar'},
+    ]},
+    {cat:'Sucesiones y Herencias', items:[
+      {id:'suc_Sucesion ab intestato',titulo:'Sucesión ab intestato'},
+      {id:'suc_Declaratoria de herederos',titulo:'Declaratoria de herederos'},
+      {id:'suc_Particion de herencia',titulo:'Partición de herencia'},
+      {id:'suc_Renuncia a herencia',titulo:'Renuncia a herencia'},
+      {id:'suc_Protocolizacion de testamento',titulo:'Protocolización de testamento'},
+    ]},
+    {cat:'Procesos Civiles', items:[
+      {id:'civil_Cobro de pesos',titulo:'Cobro de pesos'},
+      {id:'civil_Ejecucion de pagares',titulo:'Ejecución de pagarés'},
+      {id:'civil_Danos y perjuicios',titulo:'Daños y perjuicios'},
+      {id:'civil_Accidentes de transito',titulo:'Accidentes de tránsito'},
+      {id:'civil_Desalojo',titulo:'Desalojo'},
+      {id:'civil_Medidas cautelares',titulo:'Medidas cautelares'},
+    ]},
+    {cat:'Vivienda y Propiedad', items:[
+      {id:'viv_Escrituracion',titulo:'Escrituración'},
+      {id:'viv_Prescripcion adquisitiva',titulo:'Prescripción adquisitiva (usucapión)'},
+      {id:'viv_Proteccion de vivienda',titulo:'Protección de vivienda (bien de familia)'},
+      {id:'viv_Regularizacion dominial',titulo:'Regularización dominial'},
+    ]},
+    {cat:'Violencia Familiar', items:[
+      {id:'viol_Denuncia por violencia familiar',titulo:'Denuncia por violencia familiar'},
+      {id:'viol_Exclusion del hogar',titulo:'Exclusión del hogar'},
+      {id:'viol_Prohibicion de acercamiento',titulo:'Prohibición de acercamiento'},
+      {id:'viol_Medidas cautelares violencia genero',titulo:'Medidas cautelares violencia de género'},
+    ]},
+    {cat:'Registros Civiles', items:[
+      {id:'reg_Rectificacion de partida',titulo:'Rectificación de partida de nacimiento'},
+      {id:'reg_Cambio de nombre',titulo:'Cambio de nombre'},
+      {id:'reg_Inscripcion tardia',titulo:'Inscripción tardía de nacimiento'},
+    ]},
+  ];
+  var guardados = window._tramitesGuardados || {};
+  var wrap = document.getElementById('tramites-wrap');
+  var html = '';
+  for (var c = 0; c < TRAMITES.length; c++) {
+    var cat = TRAMITES[c];
+    html += '<div style="margin-bottom:20px"><div class="cat-titulo">' + cat.cat + '</div>';
+    for (var i = 0; i < cat.items.length; i++) {
+      var t = cat.items[i];
+      var val = (guardados[t.id] || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      var eid = 't_' + c + '_' + i;
+      html += '<div class="tram-card">';
+      html += '<div class="tram-titulo">' + t.titulo + '</div>';
+      html += '<div class="tram-hint">1ª línea = descripción · Líneas siguientes = requisitos a presentar (uno por línea)</div>';
+      html += '<textarea class="tram-textarea" id="' + eid + '">' + val + '</textarea>';
+      html += '<div class="tram-acciones">';
+      html += '<button class="btn-guardar" onclick="guardarTramiteLocal(\'' + t.id + '\',\'' + eid + '\',this)">💾 Guardar</button>';
+      html += '<span class="tram-ok" id="ok_' + eid + '">✅ Guardado</span>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
+  wrap.innerHTML = html;
+  // Intentar cargar guardados de Firebase por las dudas
+  if (window.cargarTramites) window.cargarTramites();
+}
+
+function guardarTramiteLocal(id, eid, btn) {
+  if (window.guardarTramite) {
+    window.guardarTramite(id, eid, btn);
+  } else {
+    alert('Esperá un momento, aún conectando...');
+    btn.disabled = false;
+  }
+}
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDr9-WBjEnUbBxKLIgS90wm6w",
+    authDomain: "orientacion-legal-argentina.firebaseapp.com",
+    projectId: "orientacion-legal-argentina",
+    storageBucket: "orientacion-legal-argentina.appspot.com",
+    messagingSenderId: "620128905895",
+    appId: "1:620128905895:web:9cda8e6d55",
+    measurementId: "G-BNYKX29XE3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // CLAVE ADMIN — cambiala cuando quieras
+  const CLAVE_ADMIN = "et162163";
+
+  let todosLosProfesionales = [];
+  let filtroActual = "todos";
+  let idAEliminar = null;
+
+  window.logout = function() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('input-clave').value = '';
+  };
+
+  window.cargarProfesionalesFunc = cargarProfesionales;
+  window.renderTramitesVacio = null; // se asigna desde script normal
+
+  async function cargarProfesionales() {
+    const lista = document.getElementById('lista-profesionales');
+    lista.innerHTML = '<div class="loading">Cargando...</div>';
+    try {
+      const snap = await getDocs(collection(db, "profesionales"));
+      todosLosProfesionales = [];
+      snap.forEach(d => todosLosProfesionales.push({ id: d.id, ...d.data() }));
+
+      // Verificar morosidad automática (más de 40 días sin pagar = suspendido)
+      const hoy = new Date();
+      for (const p of todosLosProfesionales) {
+        if (p.fechaRegistro && !p.pagado && p.estado === 'activo') {
+          const fecha = p.fechaRegistro.toDate ? p.fechaRegistro.toDate() : new Date(p.fechaRegistro);
+          const dias = Math.floor((hoy - fecha) / (1000 * 60 * 60 * 24));
+          if (dias > 40) {
+            await updateDoc(doc(db, "profesionales", p.id), { estado: 'suspendido' });
+            p.estado = 'suspendido';
+          } else if (dias > 30) {
+            await updateDoc(doc(db, "profesionales", p.id), { estado: 'moroso' });
+            p.estado = 'moroso';
+          }
+        }
+      }
+
+      actualizarStats();
+      renderLista();
+    } catch(e) {
+      lista.innerHTML = '<div class="empty-state">Error cargando datos. Revisá la conexión.</div>';
+    }
+  }
+
+  function actualizarStats() {
+    document.getElementById('stat-total').textContent = todosLosProfesionales.length;
+    document.getElementById('stat-activos').textContent = todosLosProfesionales.filter(p => p.estado === 'activo' && p.pagado).length;
+    document.getElementById('stat-morosos').textContent = todosLosProfesionales.filter(p => p.estado === 'moroso').length;
+    document.getElementById('stat-suspendidos').textContent = todosLosProfesionales.filter(p => p.estado === 'suspendido').length;
+  }
+
+  function renderLista() {
+    const lista = document.getElementById('lista-profesionales');
+    let datos = todosLosProfesionales;
+
+    if (filtroActual === 'abogado') datos = datos.filter(p => p.tipo === 'abogado');
+    else if (filtroActual === 'mediador') datos = datos.filter(p => p.tipo === 'mediador');
+    else if (filtroActual === 'moroso') datos = datos.filter(p => p.estado === 'moroso');
+    else if (filtroActual === 'suspendido') datos = datos.filter(p => p.estado === 'suspendido');
+
+    if (datos.length === 0) {
+      lista.innerHTML = '<div class="empty-state">😕 No hay profesionales en esta categoría.</div>';
+      return;
+    }
+
+    lista.innerHTML = datos.map(p => {
+      const estadoClass = p.estado === 'activo' ? (p.pagado ? 'badge-activo' : 'badge-moroso') : `badge-${p.estado}`;
+      const estadoLabel = p.estado === 'activo' ? (p.pagado ? '✅ Al día' : '⚠️ Sin confirmar pago') : p.estado === 'moroso' ? '⚠️ Moroso' : '🔴 Suspendido';
+      const cardClass = p.estado === 'moroso' ? 'moroso' : p.estado === 'suspendido' ? 'suspendido' : '';
+
+      return `
+      <div class="prof-card ${cardClass}">
+        <div class="prof-header">
+          <div>
+            <div class="prof-nombre">${p.nombre} ${p.apellido}</div>
+            <span class="prof-tipo tipo-${p.tipo}">${p.tipo === 'abogado' ? '👨‍⚖️ Abogado' : '🤝 Mediador'}</span>
+          </div>
+          <span class="badge-estado ${estadoClass}">${estadoLabel}</span>
+        </div>
+        <div class="prof-info">
+          <span>📧 ${p.email || '—'}</span>
+          <span>📞 ${p.telefono || '—'}</span>
+          <span>⚖️ ${p.especialidad || '—'}</span>
+          <span>📍 ${p.zona || '—'}</span>
+        </div>
+        <div class="prof-acciones">
+          ${p.pagado
+            ? `<button class="btn-accion btn-pago-no" onclick="marcarPago('${p.id}', false)">💸 Quitar pago</button>`
+            : `<button class="btn-accion btn-pago-ok" onclick="marcarPago('${p.id}', true)">✅ Confirmar pago</button>`
+          }
+          ${p.estado === 'suspendido'
+            ? `<button class="btn-accion btn-reactivar" onclick="cambiarEstado('${p.id}', 'activo')">🔓 Reactivar</button>`
+            : `<button class="btn-accion btn-suspender" onclick="cambiarEstado('${p.id}', 'suspendido')">🔒 Suspender</button>`
+          }
+          <button class="btn-accion btn-eliminar" onclick="pedirConfirmacion('${p.id}')">🗑️ Eliminar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  window.filtrar = function(tipo, btn) {
+    filtroActual = tipo;
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLista();
+  };
+
+  window.marcarPago = async function(id, pagado) {
+    await updateDoc(doc(db, "profesionales", id), {
+      pagado,
+      estado: pagado ? 'activo' : 'moroso',
+      ultimoPago: pagado ? serverTimestamp() : null
+    });
+    const p = todosLosProfesionales.find(x => x.id === id);
+    if (p) { p.pagado = pagado; p.estado = pagado ? 'activo' : 'moroso'; }
+    actualizarStats();
+    renderLista();
+  };
+
+  window.cambiarEstado = async function(id, estado) {
+    await updateDoc(doc(db, "profesionales", id), { estado });
+    const p = todosLosProfesionales.find(x => x.id === id);
+    if (p) p.estado = estado;
+    actualizarStats();
+    renderLista();
+  };
+
+  window.pedirConfirmacion = function(id) {
+    idAEliminar = id;
+    document.getElementById('confirm-overlay').style.display = 'flex';
+    document.getElementById('btn-confirmar-si').onclick = async () => {
+      await deleteDoc(doc(db, "profesionales", idAEliminar));
+      todosLosProfesionales = todosLosProfesionales.filter(x => x.id !== idAEliminar);
+      cerrarConfirm();
+      actualizarStats();
+      renderLista();
+    };
+  };
+
+  window.cerrarConfirm = function() {
+    document.getElementById('confirm-overlay').style.display = 'none';
+    idAEliminar = null;
+  };
+
+  // ── TRAMITES ──
+  const TRAMITES = [
+    {cat:'Familia y Niñez', items:[
+      {id:'familia_Divorcio',titulo:'Divorcio'},
+      {id:'familia_Nulidad de matrimonio',titulo:'Nulidad de matrimonio'},
+      {id:'familia_Cuidado personal de hijos',titulo:'Cuidado personal de hijos'},
+      {id:'familia_Cuota alimentaria para hijos',titulo:'Cuota alimentaria para hijos'},
+      {id:'familia_Regimen de comunicacion',titulo:'Régimen de comunicación'},
+      {id:'familia_Autorizacion para viajar con menores',titulo:'Autorización para viajar con menores'},
+      {id:'familia_Responsabilidad parental',titulo:'Responsabilidad parental'},
+      {id:'familia_Adopcion',titulo:'Adopción'},
+      {id:'familia_Filiacion',titulo:'Filiación'},
+      {id:'familia_Cambio de nombre y apellido',titulo:'Cambio de nombre y apellido'},
+    ]},
+    {cat:'Uniones Convivenciales', items:[
+      {id:'conv_Inscripcion union convivencial',titulo:'Inscripción de unión convivencial'},
+      {id:'conv_Cese union convivencial',titulo:'Cese de unión convivencial'},
+      {id:'conv_Compensacion economica',titulo:'Compensación económica por ruptura'},
+      {id:'conv_Atribucion vivienda familiar',titulo:'Atribución de vivienda familiar'},
+    ]},
+    {cat:'Sucesiones y Herencias', items:[
+      {id:'suc_Sucesion ab intestato',titulo:'Sucesión ab intestato'},
+      {id:'suc_Declaratoria de herederos',titulo:'Declaratoria de herederos'},
+      {id:'suc_Particion de herencia',titulo:'Partición de herencia'},
+      {id:'suc_Renuncia a herencia',titulo:'Renuncia a herencia'},
+      {id:'suc_Protocolizacion de testamento',titulo:'Protocolización de testamento'},
+    ]},
+    {cat:'Procesos Civiles', items:[
+      {id:'civil_Cobro de pesos',titulo:'Cobro de pesos'},
+      {id:'civil_Ejecucion de pagares',titulo:'Ejecución de pagarés'},
+      {id:'civil_Danos y perjuicios',titulo:'Daños y perjuicios'},
+      {id:'civil_Accidentes de transito',titulo:'Accidentes de tránsito'},
+      {id:'civil_Desalojo',titulo:'Desalojo'},
+      {id:'civil_Medidas cautelares',titulo:'Medidas cautelares'},
+    ]},
+    {cat:'Vivienda y Propiedad', items:[
+      {id:'viv_Escrituracion',titulo:'Escrituración'},
+      {id:'viv_Prescripcion adquisitiva',titulo:'Prescripción adquisitiva (usucapión)'},
+      {id:'viv_Proteccion de vivienda',titulo:'Protección de vivienda (bien de familia)'},
+      {id:'viv_Regularizacion dominial',titulo:'Regularización dominial'},
+    ]},
+    {cat:'Violencia Familiar', items:[
+      {id:'viol_Denuncia por violencia familiar',titulo:'Denuncia por violencia familiar'},
+      {id:'viol_Exclusion del hogar',titulo:'Exclusión del hogar'},
+      {id:'viol_Prohibicion de acercamiento',titulo:'Prohibición de acercamiento'},
+      {id:'viol_Medidas cautelares violencia genero',titulo:'Medidas cautelares violencia de género'},
+    ]},
+    {cat:'Registros Civiles', items:[
+      {id:'reg_Rectificacion de partida',titulo:'Rectificación de partida de nacimiento'},
+      {id:'reg_Cambio de nombre',titulo:'Cambio de nombre'},
+      {id:'reg_Inscripcion tardia',titulo:'Inscripción tardía de nacimiento'},
+    ]},
+  ];
+
+  window.cargarTramites = async function() {
+    var guardados = {};
+    try {
+      var snap = await getDoc(doc(db, 'config', 'tramites'));
+      if (snap.exists()) guardados = snap.data();
+    } catch(e) {}
+    window._tramitesGuardados = guardados;
+    if (window.renderTramitesVacio) window.renderTramitesVacio();
+    return;
+    var wrap = document.getElementById('tramites-wrap');
+    var html = '';
+    for (var c = 0; c < TRAMITES.length; c++) {
+      var cat = TRAMITES[c];
+      html += '<div style="margin-bottom:20px"><div class="cat-titulo">' + cat.cat + '</div>';
+      for (var i = 0; i < cat.items.length; i++) {
+        var t = cat.items[i];
+        var val = (guardados[t.id] || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        html += '<div class="tram-card">';
+        html += '<div class="tram-titulo">' + t.titulo + '</div>';
+        html += '<div class="tram-hint">1ª línea = descripción &middot; Líneas siguientes = requisitos (uno por línea)</div>';
+        html += '<textarea class="tram-textarea" id="t_' + c + '_' + i + '">' + val + '</textarea>';
+        html += '<div class="tram-acciones">';
+        html += '<button class="btn-guardar" onclick="guardarTramite(\'' + t.id + '\',\'t_' + c + '_' + i + '\',this)">💾 Guardar</button>';
+        html += '<span class="tram-ok" id="ok_t_' + c + '_' + i + '">✅ Guardado</span>';
+        html += '</div></div>';
+      }
+      html += '</div>';
+    }
+    wrap.innerHTML = html;
+  };
+
+  window.guardarTramite = async function(id, eid, btn) {
+    btn.disabled = true;
+    var texto = document.getElementById(eid).value;
+    try {
+      var obj = {}; obj[id] = texto;
+      await setDoc(doc(db, 'config', 'tramites'), obj, { merge: true });
+      var ok = document.getElementById('ok_' + eid);
+      ok.style.display = 'inline';
+      setTimeout(function(){ ok.style.display = 'none'; btn.disabled = false; }, 2000);
+    } catch(e) {
+      alert('Error al guardar.');
+      btn.disabled = false;
+    }
+  };
+
+</script>
+</body>
+</html>
